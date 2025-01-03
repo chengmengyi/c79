@@ -1,10 +1,12 @@
-import 'package:c79/tm_utils/tm_routers.dart';
-import 'package:c79/tm_utils/user_info/user_info_a_utils.dart';
+import 'package:c79/flash/flash_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:tm_aaaa/routers_list/routers_list.dart';
+import 'package:tm_aaaa/user_info/user_info_a_utils.dart';
+import 'package:tm_root/tm_utils/routers_name/tm_routers.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var list = tmAPageList;
+    list.add(
+        GetPage(
+            name: TmPageName.flash,
+            page: ()=> FlashPage(),
+            transition: Transition.fadeIn
+        )
+    );
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       builder: (context, child) => GetMaterialApp(
@@ -40,7 +50,7 @@ class MyApp extends StatelessWidget {
         themeMode: ThemeMode.system,
         initialRoute: TmPageName.flash,
         debugShowCheckedModeBanner: false,
-        getPages: tmPageList,
+        getPages: list,
         defaultTransition: Transition.rightToLeft,
         builder: (context,widget){
           return  MediaQuery(
