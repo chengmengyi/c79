@@ -7,7 +7,7 @@ class PatternBean{
   Offset? offset;
   bool? covered;
   bool? show;
-  int? sort;
+  int sort;
   PatternBean({
     required this.selIcon,
     required this.unsIcon,
@@ -15,11 +15,11 @@ class PatternBean{
     this.offset,
     this.covered,
     this.show,
-    this.sort,
+    this.sort=0,
 });
 
   @override
   String toString() {
-    return 'PatternBean{selIcon: $selIcon, unsIcon: $unsIcon, globalKey: $globalKey, offset: $offset, covered: $covered}';
+    return 'PatternBean{selIcon: $selIcon, unsIcon: $unsIcon, globalKey: $globalKey, offset: $offset, covered: $covered, show: $show, sort: $sort}';
   }
 }

@@ -12,9 +12,11 @@ Widget tmText({
   required String data,
   required double fontSize,
   required String colorStr,
+  TextAlign? textAlign,
   List<Shadow>? shadows,
 })=>Text(
   data,
+  textAlign: textAlign,
   style: TextStyle(
     color: toTmColor(colorStr),
     fontSize: fontSize,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:tm_aaaa/page/a_play/a_play_controller.dart';
+import 'package:tm_aaaa/pattern/pattern_utils.dart';
+import 'package:tm_aaaa/user_info/user_info_a_utils.dart';
 import 'package:tm_aaaa/view/gold/a_gold_view.dart';
 import 'package:tm_aaaa/view/star/a_star_view.dart';
 import 'package:tm_root/tm_root/tm_normal_widget.dart';
@@ -16,23 +18,28 @@ class APlay extends TmRootPage<APlayController>{
   String tmBg() => "play_bg";
 
   @override
+  bool safeAreaTop() => false;
+
+  @override
   Widget initWidget() => SizedBox(
     width: double.infinity,
     height: double.infinity,
     child: Stack(
       children: [
-        Column(
-          children: [
-            _topWidget(),
-            _progressWidget(),
-            SizedBox(height: 12.h,),
-            _levelWidget(),
-            SizedBox(height: 30.h,),
-            _patternWidget(),
-            SizedBox(height: 40.h,),
-            _selectedWidget(),
-            SizedBox(height: 20.h,),
-          ],
+        SafeArea(
+          child: Column(
+            children: [
+              _topWidget(),
+              _progressWidget(),
+              SizedBox(height: 12.h,),
+              _levelWidget(),
+              SizedBox(height: 30.h,),
+              _patternWidget(),
+              SizedBox(height: 40.h,),
+              _selectedWidget(),
+              _funcWidget(),
+            ],
+          ),
         ),
         _animatorWidget(),
       ],
@@ -72,11 +79,14 @@ class APlay extends TmRootPage<APlayController>{
                   tmImage(imageName: "progress1",width: double.infinity,height: 12.h),
                   Container(
                     margin: EdgeInsets.only(left: 2.w,right: 2.w),
-                    child: ClipRect(
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: 0.5,
-                        child: tmImage(imageName: "progress2",width: double.infinity,height: 8.h),
+                    child: GetBuilder<APlayController>(
+                      id: "progress",
+                      builder: (_)=>ClipRect(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: tmController.getLevelProgress(),
+                          child: tmImage(imageName: "progress2",width: double.infinity,height: 8.h),
+                        ),
                       ),
                     ),
                   )
@@ -124,19 +134,23 @@ class APlay extends TmRootPage<APlayController>{
     ),
   );
   
-  _levelWidget()=>InkWell(
-    onTap: (){
-    },
-    child: tmText(
-        data: "Level 1",
-        fontSize: 24.sp,
-        colorStr: "#FFFFFF",
-        shadows: [
-          Shadow(
-            color: toTmColor("#FF8A0E"),
-            offset: const Offset(1.0, 2.0),
-          ),
-        ]
+  _levelWidget()=>GetBuilder<APlayController>(
+    id: "level",
+    builder: (_)=>InkWell(
+      onTap: (){
+        tmController.readOffset();
+      },
+      child: tmText(
+          data: "Level ${(UserInfoAUtils.instance.userInfoABean?.level??0)+1}",
+          fontSize: 24.sp,
+          colorStr: "#FFFFFF",
+          shadows: [
+            Shadow(
+              color: toTmColor("#FF8A0E"),
+              offset: const Offset(1.0, 2.0),
+            ),
+          ]
+      ),
     ),
   );
 
@@ -144,24 +158,26 @@ class APlay extends TmRootPage<APlayController>{
     id: "pattern",
     builder: (_){
       List<Widget> widgetList=[];
+      var rowNum = PatternUtils.instance.getPatternInfoByLevel().rowNum;
+      // print("kk======${tmController.patternList[1][1].toString()}");
       for(var index=0;index<tmController.patternList.length;index++){
         var value = tmController.patternList[index];
         widgetList.add(
             Container(
-              margin: index==1?EdgeInsets.only(left: 28.w,top: 28.w):null,
+              margin: index==tmController.patternList.length-1?EdgeInsets.only(left: 28.w,top: 28.w):null,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: List.generate(4, (shuIndex){
+                children: List.generate(rowNum, (shuIndex){
                   return Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(4, (hengIndex){
-                      var bean = value[shuIndex*4+hengIndex];
+                    children: List.generate(rowNum, (hengIndex){
+                      var bean = value[shuIndex*rowNum+hengIndex];
                       if(bean.selIcon.isEmpty||bean.show==false){
                         return Container(
-                          width: 56.w,
-                          height: 56.w,
+                          width: 52.w,
+                          height: 52.w,
                           key: bean.globalKey,
-                          // color: index==0?Colors.blue.withOpacity(0.5):Colors.red.withOpacity(0.5),
+                          // color: index==0?Colors.red.withOpacity(0.5):index==1?Colors.white.withOpacity(0.5):Colors.blue.withOpacity(0.5),
                         );
                       }
                       return SizedBox(
@@ -172,9 +188,20 @@ class APlay extends TmRootPage<APlayController>{
                           },
                           child: tmImage(
                             imageName: bean.covered==true?bean.unsIcon:bean.selIcon,
-                            width: 56.w,
-                            height: 56.w,
+                            width: 52.w,
+                            height: 52.w,
                           ),
+                          // child: Stack(
+                          //   alignment: Alignment.center,
+                          //   children: [
+                          //     tmImage(
+                          //       imageName: bean.covered==true?bean.unsIcon:bean.selIcon,
+                          //       width: 52.w,
+                          //       height: 52.w,
+                          //     ),
+                          //     tmText(data: "层$index", fontSize: 20.sp, colorStr: "#FFFFFF"),
+                          //   ],
+                          // ),
                         ),
                       );
                     }),
@@ -250,5 +277,52 @@ class APlay extends TmRootPage<APlayController>{
         },
       );
     },
+  );
+
+
+  _funcWidget()=>Expanded(
+    child: Container(
+      width: double.infinity,
+      height: double.infinity,
+      alignment: Alignment.center,
+      child: GetBuilder<APlayController>(
+        id: "func",
+        builder: (_)=>Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _funcItemWidget("icon_revoke",UserInfoAUtils.instance.userInfoABean?.revokeNum??0),
+            SizedBox(width: 28.w,),
+            _funcItemWidget("icon_reset",UserInfoAUtils.instance.userInfoABean?.resetNum??0),
+            SizedBox(width: 28.w,),
+            _funcItemWidget("icon_tips",UserInfoAUtils.instance.userInfoABean?.tipsNum??0),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  _funcItemWidget(String icon,int num)=>InkWell(
+    onTap: (){
+      tmController.clickFunc(icon);
+    },
+    child: Stack(
+      alignment: Alignment.topRight,
+      children: [
+        Container(
+          margin: EdgeInsets.only(top: 2.h,right: 2.w),
+          child: tmImage(imageName: icon,width: 56.w,height: 60.h),
+        ),
+        Container(
+          width: 20.w,
+          height: 20.w,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10.w),
+              color: toTmColor("#C31010")
+          ),
+          child: tmText(data: "$num", fontSize: 14.sp, colorStr: "#FFFFFF"),
+        )
+      ],
+    ),
   );
 }

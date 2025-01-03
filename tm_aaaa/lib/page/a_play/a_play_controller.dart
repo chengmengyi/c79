@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:tm_aaaa/dialog/level_up/level_up_dialog.dart';
+import 'package:tm_aaaa/dialog/reset/reset_dialog.dart';
+import 'package:tm_aaaa/dialog/revoke/revoke_dialog.dart';
+import 'package:tm_aaaa/dialog/selected_full/selected_full_dialog.dart';
+import 'package:tm_aaaa/dialog/tips/tips_dialog.dart';
 import 'package:tm_aaaa/pattern/pattern_bean.dart';
 import 'package:tm_aaaa/pattern/pattern_utils.dart';
 import 'package:tm_aaaa/user_info/user_info_a_utils.dart';
 import 'package:tm_root/tm_root/tm_root_controller.dart';
+import 'package:tm_root/tm_utils/event/event_code.dart';
+import 'package:tm_root/tm_utils/event/event_data.dart';
 
 class APlayController extends TmRootController with GetTickerProviderStateMixin{
   var showPattern=false;
@@ -36,13 +43,28 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     initData();
   }
 
-  clickPattern(PatternBean bean){
+  clickPattern(PatternBean bean)async{
     if(bean.selIcon.isEmpty||bean.covered==true||null==bean.offset||bean.show==false||null!=patternAnimation){
       return;
     }
+    if(selectedList.length>=6){
+      _showSelectedFullDialog();
+      return;
+    }
+    var maxPattern = patternList.first.firstWhere((element) => element.selIcon.isNotEmpty);
+    for (var value in patternList) {
+      for (int i = 1; i < value.length; i++) {
+        var patternBean = value[i];
+        if(patternBean.selIcon.isNotEmpty&&patternBean.sort>maxPattern.sort){
+          maxPattern=patternBean;
+        }
+
+      }
+    }
+    bean.sort=maxPattern.sort+1;
     var renderBox = selectedListGlobalKey.currentContext!.findRenderObject() as RenderBox;
     var offset = renderBox.localToGlobal(Offset.zero);
-    var newOffset=Offset(offset.dx+(selectedList.length*52.w), offset.dy-52.w);
+    var newOffset=Offset(offset.dx+(selectedList.length*52.w), offset.dy);
     patternAnimation=Tween<Offset>(
       begin: bean.offset,
       end: newOffset,
@@ -66,12 +88,23 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
       selectedList.add(currentSelectedPatternBean!);
     }
     _removePattern(
-      result: (){
+      result: ()async{
         patternAnimation=null;
         update(["selectedList","animator"]);
+        if(selectedList.length>=6){
+          _showSelectedFullDialog();
+          return;
+        }
         if(_checkAllRemove()){
           UserInfoAUtils.instance.updateUserLevel();
-
+          Get.dialog(
+            LevelUpDialog(
+              dismiss: (){
+                initData();
+              },
+            ),
+            barrierDismissible: false,
+          );
         }else{
           readOffset();
         }
@@ -118,29 +151,39 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     return true;
   }
 
+  _showSelectedFullDialog(){
+    Get.dialog(
+      SelectedFullDialog(
+        tryAgain: (){
+          initData();
+        },
+      ),
+      barrierDismissible: false,
+    );
+  }
+
   initData(){
     _updateShowPattern(false);
     var list = PatternUtils.instance.getPatternList();
     patternList.clear();
-    var downList = list.sublist(0,9);
-    while(downList.length<16){
-      downList.add(PatternBean(selIcon: "", unsIcon: "",globalKey: GlobalKey()));
-    }
-    downList.shuffle();
-    patternList.add(downList);
-    var topList = list.sublist(9,list.length);
-    while(topList.length<16){
-      topList.add(PatternBean(selIcon: "", unsIcon: "",globalKey: GlobalKey()));
-    }
-    topList.shuffle();
-    patternList.add(topList);
-    update(["pattern"]);
+    patternList.addAll(list);
+    selectedList.clear();
+    update(["pattern","selectedList"]);
     SchedulerBinding.instance.addPostFrameCallback((_) {
       readOffset();
     });
   }
 
   readOffset(){
+    // var downList = patternList[1];
+    // var topList = patternList[2];
+    // var downBean = downList[1];
+    // final downOffset = downBean.offset??Offset.zero;
+    // var bottomRightCovered = _checkBottomRightCovered(1,downOffset,topList);
+    // print("kk=====bottomRightCovered==$bottomRightCovered");
+
+
+    var rowNum = PatternUtils.instance.getPatternInfoByLevel().rowNum;
     for (var value in patternList) {
       for (var value1 in value) {
         var renderBox = value1.globalKey.currentContext!.findRenderObject() as RenderBox;
@@ -148,20 +191,49 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
         value1.offset=offset;
       }
     }
-    for(var index=0;index<patternList.first.length;index++){
-      var downBean = patternList.first[index];
-      final downOffset = downBean.offset??Offset.zero;
-      var bottomRightCovered = _checkBottomRightCovered(index,downOffset);
-      var bottomLeftCovered = _checkBottomLeftCovered(index, downOffset);
-      var topRightCovered = _checkTopRightCovered(index, downOffset);
-      var topLeftCovered = _checkTopLeftCovered(index, downOffset);
-      downBean.covered=bottomRightCovered||bottomLeftCovered||topRightCovered||topLeftCovered;
+    for(var largeIndex=0;largeIndex<patternList.length-1;largeIndex++){
+      var downList = patternList[largeIndex];
+      var topList = patternList[largeIndex+1];
+      for(var index=0;index<downList.length;index++){
+        var downBean = downList[index];
+        final downOffset = downBean.offset??Offset.zero;
+        var bottomRightCovered = _checkBottomRightCovered(index,downOffset,topList);
+        var bottomLeftCovered = _checkBottomLeftCovered(index, downOffset,topList);
+        var topRightCovered = _checkTopRightCovered(index, downOffset,rowNum,topList);
+        var topLeftCovered = _checkTopLeftCovered(index, downOffset,rowNum,topList);
+        downBean.covered=bottomRightCovered||bottomLeftCovered||topRightCovered||topLeftCovered;
+      }
     }
+
+    if(patternList.length>=3){
+      var downList = patternList[0];
+      var topList = patternList[2];
+      for(var index=0;index<downList.length;index++){
+        var downBean = downList[index];
+        final downOffset = downBean.offset??Offset.zero;
+        var bottomRightCovered = _checkBottomRightCovered(index,downOffset,topList);
+        var bottomLeftCovered = _checkBottomLeftCovered(index, downOffset,topList);
+        var topRightCovered = _checkTopRightCovered(index, downOffset,rowNum,topList);
+        var topLeftCovered = _checkTopLeftCovered(index, downOffset,rowNum,topList);
+        downBean.covered=bottomRightCovered||bottomLeftCovered||topRightCovered||topLeftCovered;
+      }
+    }
+
+
+    // for(var index=0;index<patternList.first.length;index++){
+    //   var downBean = patternList.first[index];
+    //   final downOffset = downBean.offset??Offset.zero;
+    //   var bottomRightCovered = _checkBottomRightCovered(index,downOffset);
+    //   var bottomLeftCovered = _checkBottomLeftCovered(index, downOffset);
+    //   var topRightCovered = _checkTopRightCovered(index, downOffset,rowNum);
+    //   var topLeftCovered = _checkTopLeftCovered(index, downOffset,rowNum);
+    //   downBean.covered=bottomRightCovered||bottomLeftCovered||topRightCovered||topLeftCovered;
+    // }
     _updateShowPattern(true);
   }
 
-  bool _checkBottomRightCovered(int index,Offset downOffset){
-    var topBean = patternList.last[index];
+  bool _checkBottomRightCovered(int index,Offset downOffset,List<PatternBean> topList){
+    var topBean = topList[index];
     final topOffset = topBean.offset??Offset.zero;
     var covered = _checkCovered(downOffset,topOffset);
     if(covered&&(topBean.selIcon.isEmpty||topBean.show==false)){
@@ -170,11 +242,11 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     return covered;
   }
 
-  bool _checkBottomLeftCovered(int index,Offset downOffset){
+  bool _checkBottomLeftCovered(int index,Offset downOffset,List<PatternBean> topList){
     if(index<=0){
       return false;
     }
-    var topBean = patternList.last[index-1];
+    var topBean = topList[index-1];
     final topOffset = topBean.offset??Offset.zero;
     var covered = _checkCovered(downOffset,topOffset);
     if(covered&&(topBean.selIcon.isEmpty||topBean.show==false)){
@@ -183,11 +255,11 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     return covered;
   }
 
-  bool _checkTopRightCovered(int index,Offset downOffset){
-    if(index<4){
+  bool _checkTopRightCovered(int index,Offset downOffset,int rowNum,List<PatternBean> topList){
+    if(index<rowNum){
       return false;
     }
-    var topBean = patternList.last[index-4];
+    var topBean = topList[index-rowNum];
     final topOffset = topBean.offset??Offset.zero;
     var covered = _checkCovered(downOffset,topOffset);
     if(covered&&(topBean.selIcon.isEmpty||topBean.show==false)){
@@ -196,11 +268,11 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     return covered;
   }
 
-  bool _checkTopLeftCovered(int index,Offset downOffset){
-    if(index<5){
+  bool _checkTopLeftCovered(int index,Offset downOffset,int rowNum,List<PatternBean> topList){
+    if(index<(rowNum+1)){
       return false;
     }
-    var topBean = patternList.last[index-5];
+    var topBean = topList[index-(rowNum+1)];
     final topOffset = topBean.offset??Offset.zero;
     var covered = _checkCovered(downOffset,topOffset);
     if(covered&&(topBean.selIcon.isEmpty||topBean.show==false)){
@@ -210,7 +282,7 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
   }
 
   _checkCovered(Offset downOffset,Offset topOffset){
-    var widgetWidth=56.w;
+    var widgetWidth=52.w;
     bool horizontalOverlap = downOffset.dx < (topOffset.dx + widgetWidth) && topOffset.dx < (downOffset.dx + widgetWidth);
     bool verticalOverlap = downOffset.dy < (topOffset.dy + widgetWidth) && topOffset.dy < (downOffset.dy + widgetWidth);
     return horizontalOverlap && verticalOverlap;
@@ -219,6 +291,131 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
   _updateShowPattern(show){
     showPattern=show;
     update(["pattern"]);
+  }
+
+  clickFunc(String icon){
+    switch(icon){
+      case "icon_revoke":
+        _revokePattern();
+        break;
+      case "icon_reset":
+        _resetPattern();
+        break;
+      case "icon_tips":
+        _tipsPattern();
+        break;
+    }
+  }
+
+  _revokePattern(){
+    if(selectedList.isEmpty||null!=patternAnimation){
+      return;
+    }
+    if((UserInfoAUtils.instance.userInfoABean?.revokeNum??0)<=0){
+      Get.dialog(
+        RevokeDialog(
+          dismiss: (){
+            // _revokePattern();
+          },
+        ),
+        barrierDismissible: false,
+      );
+      return;
+    }
+    for (var value in patternList) {
+      var indexWhere = value.indexWhere((element) => element.sort==selectedList.last.sort);
+      if(indexWhere>=0){
+        value[indexWhere].show=null;
+        selectedList.removeLast();
+        update(["pattern","selectedList"]);
+        UserInfoAUtils.instance.updateUserRevoke(-1);
+        readOffset();
+        break;
+      }
+    }
+  }
+
+  _resetPattern(){
+    if(null!=patternAnimation){
+      return;
+    }
+    if((UserInfoAUtils.instance.userInfoABean?.resetNum??0)<=0){
+      Get.dialog(
+        ResetDialog(
+          dismiss: (){
+            // _resetPattern();
+          },
+        ),
+        barrierDismissible: false,
+      );
+      return;
+    }
+    UserInfoAUtils.instance.updateUserReset(-1);
+    for (var value in patternList) {
+      value.shuffle();
+    }
+    _updateShowPattern(false);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      readOffset();
+    });
+  }
+
+  _tipsPattern(){
+    if(selectedList.isEmpty||null!=patternAnimation){
+      return;
+    }
+    if((UserInfoAUtils.instance.userInfoABean?.tipsNum??0)<=0){
+      Get.dialog(
+        TipsDialog(
+          dismiss: (){
+            // _tipsPattern();
+          },
+        ),
+        barrierDismissible: false,
+      );
+      return;
+    }
+    var lastSelIcon = selectedList.last.selIcon;
+    var list = selectedList.where((element) => element.selIcon==currentSelectedPatternBean?.selIcon).toList();
+    if(list.length==2){
+      lastSelIcon=list.last.selIcon;
+    }
+    for (var value in patternList) {
+      var indexWhere = value.indexWhere((element) => element.covered!=true&&element.show!=false&&element.selIcon==lastSelIcon);
+      if(indexWhere>=0){
+        UserInfoAUtils.instance.updateUserTips(-1);
+        clickPattern(value[indexWhere]);
+        break;
+      }
+    }
+  }
+
+  double getLevelProgress(){
+    var d = (UserInfoAUtils.instance.userInfoABean?.level??0)/10;
+    if(d>=1){
+      return 1.0;
+    }else if(d<=0){
+      return 0;
+    }else{
+      return d;
+    }
+  }
+
+  @override
+  bool tmRegisterEvent() => true;
+
+  @override
+  tmReceivedEvent(EventData eventData) {
+    switch(eventData.eventCode){
+      case EventCode.updateRevokeA:
+      case EventCode.updateResetA:
+      case EventCode.updateTipsA:
+        update(["func"]);
+        break;
+      case EventCode.updateLevelA:
+        update(["progress","level"]);
+        break;
+    }
   }
 
   @override

@@ -23,4 +23,22 @@ class UserInfoAUtils{
     userInfoABean?.level=i+1;
     Dba.instance.updateUserInfo(userInfoABean,EventCode.updateLevelA);
   }
+
+  updateUserRevoke(int addNum){
+    var i = userInfoABean?.revokeNum??0;
+    userInfoABean?.revokeNum=i+addNum;
+    Dba.instance.updateUserInfo(userInfoABean,EventCode.updateRevokeA);
+  }
+
+  updateUserReset(int addNum){
+    var i = userInfoABean?.resetNum??0;
+    userInfoABean?.resetNum=i+addNum;
+    Dba.instance.updateUserInfo(userInfoABean,EventCode.updateResetA);
+  }
+
+  updateUserTips(int addNum){
+    var i = userInfoABean?.tipsNum??0;
+    userInfoABean?.tipsNum=i+addNum;
+    Dba.instance.updateUserInfo(userInfoABean,EventCode.updateTipsA);
+  }
 }
