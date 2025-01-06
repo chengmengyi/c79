@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,6 +7,7 @@ import 'package:tm_aaaa/dialog/level_up/level_up_dialog.dart';
 import 'package:tm_aaaa/dialog/reset/reset_dialog.dart';
 import 'package:tm_aaaa/dialog/revoke/revoke_dialog.dart';
 import 'package:tm_aaaa/dialog/selected_full/selected_full_dialog.dart';
+import 'package:tm_aaaa/dialog/set/set_dialog.dart';
 import 'package:tm_aaaa/dialog/tips/tips_dialog.dart';
 import 'package:tm_aaaa/pattern/pattern_bean.dart';
 import 'package:tm_aaaa/pattern/pattern_utils.dart';
@@ -44,6 +46,13 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
   }
 
   clickPattern(PatternBean bean)async{
+    // if(kDebugMode){
+    //   var length = _hasConsecutiveDuplicates();
+    //   var lastIndex = selectedList.lastIndexWhere((element) => element.selIcon==bean.selIcon);
+    //   print("kk=====${length}===${lastIndex}");
+    //   return;
+    // }
+
     if(bean.selIcon.isEmpty||bean.covered==true||null==bean.offset||bean.show==false||null!=patternAnimation){
       return;
     }
@@ -62,9 +71,22 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
       }
     }
     bean.sort=maxPattern.sort+1;
-    var renderBox = selectedListGlobalKey.currentContext!.findRenderObject() as RenderBox;
-    var offset = renderBox.localToGlobal(Offset.zero);
-    var newOffset=Offset(offset.dx+(selectedList.length*52.w), offset.dy);
+    var newOffset=Offset.zero;
+
+    // var length = selectedList.where((element) => element.selIcon==bean.selIcon).length;
+    var lastIndex = selectedList.lastIndexWhere((element) => element.selIcon==bean.selIcon);
+    if(_hasConsecutiveDuplicates(bean)&&lastIndex!=selectedList.length-1){
+      var renderBox = selectedListGlobalKey.currentContext!.findRenderObject() as RenderBox;
+      var offset = renderBox.localToGlobal(Offset.zero);
+      newOffset=Offset(offset.dx+((lastIndex+1)*52.w), offset.dy);
+      selectedList.insert(lastIndex+1,PatternBean(selIcon: "", unsIcon: "", globalKey: GlobalKey()));
+      update(["selectedList"]);
+    }else{
+      var renderBox = selectedListGlobalKey.currentContext!.findRenderObject() as RenderBox;
+      var offset = renderBox.localToGlobal(Offset.zero);
+      newOffset=Offset(offset.dx+(selectedList.length*52.w), offset.dy);
+    }
+
     patternAnimation=Tween<Offset>(
       begin: bean.offset,
       end: newOffset,
@@ -75,18 +97,21 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     patternController..reset()..forward();
   }
 
-  _animatorEnd(){
-    var length = selectedList.where((element) => element.selIcon==currentSelectedPatternBean?.selIcon).length;
-    if(length==2){
+  _animatorEnd()async{
+    if(_hasConsecutiveDuplicates(currentSelectedPatternBean!)){
       var lastIndex = selectedList.lastIndexWhere((element) => element.selIcon==currentSelectedPatternBean?.selIcon);
       if(lastIndex==selectedList.length-1){
         selectedList.add(currentSelectedPatternBean!);
       }else{
-        selectedList.insert(lastIndex+1, currentSelectedPatternBean!);
+        // selectedList.insert(lastIndex+1, currentSelectedPatternBean!);
+        selectedList[lastIndex+1]=currentSelectedPatternBean!;
       }
     }else{
       selectedList.add(currentSelectedPatternBean!);
     }
+    update(["selectedList"]);
+    await Future.delayed(const Duration(milliseconds: 100));
+
     _removePattern(
       result: ()async{
         patternAnimation=null;
@@ -175,14 +200,6 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
   }
 
   readOffset(){
-    // var downList = patternList[1];
-    // var topList = patternList[2];
-    // var downBean = downList[1];
-    // final downOffset = downBean.offset??Offset.zero;
-    // var bottomRightCovered = _checkBottomRightCovered(1,downOffset,topList);
-    // print("kk=====bottomRightCovered==$bottomRightCovered");
-
-
     var rowNum = PatternUtils.instance.getPatternInfoByLevel().rowNum;
     for (var value in patternList) {
       for (var value1 in value) {
@@ -230,6 +247,15 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     //   downBean.covered=bottomRightCovered||bottomLeftCovered||topRightCovered||topLeftCovered;
     // }
     _updateShowPattern(true);
+  }
+
+  bool _hasConsecutiveDuplicates(PatternBean bean) {
+    for (int i = 0; i < selectedList.length - 1; i++) {
+      if (selectedList[i].selIcon == selectedList[i + 1].selIcon) {
+        return selectedList[i].selIcon==bean.selIcon;
+      }
+    }
+    return false;
   }
 
   bool _checkBottomRightCovered(int index,Offset downOffset,List<PatternBean> topList){
@@ -399,6 +425,17 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
     }else{
       return d;
     }
+  }
+
+  showSetDialog(){
+    Get.dialog(
+      SetDialog(
+        quit: (){
+          Get.back();
+        },
+      ),
+      barrierDismissible: false
+    );
   }
 
   @override

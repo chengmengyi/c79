@@ -1,4 +1,5 @@
 import 'package:c79/flash/flash_page.dart';
+import 'package:c79/load_url/load_url_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -34,13 +35,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var list = tmAPageList;
-    list.add(
-        GetPage(
-            name: TmPageName.flash,
-            page: ()=> FlashPage(),
-            transition: Transition.fadeIn
-        )
-    );
+    list.addAll([
+      GetPage(
+          name: TmPageName.flash,
+          page: ()=> FlashPage(),
+          transition: Transition.fadeIn
+      ),
+      GetPage(
+          name: TmPageName.loadUrl,
+          page: ()=> LoadUrlPage(),
+          transition: Transition.fadeIn
+      ),
+    ]);
     return ScreenUtilInit(
       designSize: const Size(375, 812),
       builder: (context, child) => GetMaterialApp(

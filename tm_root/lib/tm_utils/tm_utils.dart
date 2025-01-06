@@ -6,6 +6,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 export 'package:get/get.dart';
 export 'package:flutter_screenutil/flutter_screenutil.dart';
+export 'package:webview_flutter/webview_flutter.dart';
 
 Color toTmColor(String colorStr) => Color(int.parse(colorStr.replaceAll("#", ""), radix: 16)).withAlpha(255);
 

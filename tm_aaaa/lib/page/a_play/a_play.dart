@@ -54,6 +54,9 @@ class APlay extends TmRootPage<APlayController>{
       AStarView(tag: "a_play",),
       const Spacer(),
       InkWell(
+        onTap: (){
+          tmController.showSetDialog();
+        },
         child: tmImage(imageName: "set",width: 36.w,height: 36.w),
       ),
       SizedBox(width: 12.w,),
@@ -245,7 +248,10 @@ class APlay extends TmRootPage<APlayController>{
           physics: const NeverScrollableScrollPhysics(),
           itemBuilder: (context,index){
             var bean = tmController.selectedList[index];
-            return tmImage(imageName: bean.selIcon,width: 52.w,height: 52.w);
+            return bean.selIcon.isEmpty?
+              SizedBox(width: 52.w,height: 52.w):
+              tmImage(imageName: bean.selIcon,width: 52.w,height: 52.w)
+            ;
           },
         ),
       ),
