@@ -20,6 +20,9 @@ class UserInfoAUtils{
 
   updateUserLevel(){
     var i = userInfoABean?.level??0;
+    if(i>=10){
+      return;
+    }
     userInfoABean?.level=i+1;
     Dba.instance.updateUserInfo(userInfoABean,EventCode.updateLevelA);
   }

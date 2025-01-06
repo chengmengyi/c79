@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:tm_aaaa/dialog/level_up/level_up_dialog.dart';
+import 'package:tm_aaaa/dialog/open_box/open_box_dialog.dart';
 import 'package:tm_aaaa/dialog/reset/reset_dialog.dart';
 import 'package:tm_aaaa/dialog/revoke/revoke_dialog.dart';
 import 'package:tm_aaaa/dialog/selected_full/selected_full_dialog.dart';
@@ -122,14 +123,25 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
         }
         if(_checkAllRemove()){
           UserInfoAUtils.instance.updateUserLevel();
-          Get.dialog(
-            LevelUpDialog(
-              dismiss: (){
-                initData();
-              },
-            ),
-            barrierDismissible: false,
-          );
+          if(UserInfoAUtils.instance.userInfoABean?.level==10){
+            Get.dialog(
+              OpenBoxDialog(
+                clickContinue: (){
+                  initData();
+                },
+              ),
+              barrierDismissible: false,
+            );
+          }else{
+            Get.dialog(
+              LevelUpDialog(
+                dismiss: (){
+                  initData();
+                },
+              ),
+              barrierDismissible: false,
+            );
+          }
         }else{
           readOffset();
         }
@@ -459,5 +471,11 @@ class APlayController extends TmRootController with GetTickerProviderStateMixin{
   void onClose() {
     patternController.dispose();
     super.onClose();
+  }
+
+  test(){
+    if(!kDebugMode){
+      return;
+    }
   }
 }

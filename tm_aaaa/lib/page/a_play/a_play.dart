@@ -92,7 +92,7 @@ class APlay extends TmRootPage<APlayController>{
                         ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
               SizedBox(height: 4.h,),
@@ -132,6 +132,11 @@ class APlay extends TmRootPage<APlayController>{
               )
             ],
           ),
+        ),
+        Positioned(
+          top: 4.h,
+          right: 10.w,
+          child: tmImage(imageName: "box",width: 36.w,height: 36.w),
         )
       ],
     ),
@@ -141,7 +146,7 @@ class APlay extends TmRootPage<APlayController>{
     id: "level",
     builder: (_)=>InkWell(
       onTap: (){
-        tmController.readOffset();
+        tmController.test();
       },
       child: tmText(
           data: "Level ${(UserInfoAUtils.instance.userInfoABean?.level??0)+1}",

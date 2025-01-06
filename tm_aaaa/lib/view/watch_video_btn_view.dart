@@ -3,8 +3,9 @@ import 'package:tm_root/tm_root/tm_normal_widget.dart';
 import 'package:tm_root/tm_utils/tm_utils.dart';
 
 class WatchVideoBtnView extends StatelessWidget{
+  String? text;
   Function() onTap;
-  WatchVideoBtnView({required this.onTap});
+  WatchVideoBtnView({this.text,required this.onTap});
 
   @override
   Widget build(BuildContext context) => InkWell(
@@ -23,7 +24,7 @@ class WatchVideoBtnView extends StatelessWidget{
           ),
           Align(
             alignment: Alignment.center,
-            child: tmText(data: "Watch AD", fontSize: 20.sp, colorStr: "#000000"),
+            child: tmText(data: text??"Watch AD", fontSize: 20.sp, colorStr: "#000000"),
           ),
         ],
       ),
